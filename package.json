@@ -1,0 +1,63 @@
+{
+  "name": "@cards-ts/pocket-tcg",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Battle mechanics for the Pokemon Pocket TCG game allowing for bot and strategy development.",
+  "author": "John Meyer",
+  "homepage": "https://github.com/johnameyer/pocket-tcg#readme",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "directories": {
+    "lib": "dist",
+    "test": "spec"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/johnameyer/pocket-tcg.git"
+  },
+  "bin": "./dist/start.js",
+  "scripts": {
+    "lint": "eslint '**/*.ts' --fix",
+    "build": "tsc && find dist/ -name \\*.js -exec sed -i -e '1s|#!/usr/bin/env ts-node|#!/usr/bin/env node|' \\{\\} \\;",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "madge": "pnpm dlx madge --circular --extensions ts ./src",
+    "debug": "ts-node-dev --rs=false --inspect --transpileOnly src/start.ts start",
+    "test": "pnpm tsc --project tsconfig.spec.json && mocha --recursive ./spec --extension spec.ts",
+    "prepack": "pnpm clean && pnpm build"
+  },
+  "bugs": {
+    "url": "https://github.com/johnameyer/pocket-tcg/issues"
+  },
+  "dependencies": {
+    "@cards-ts/pocket-tcg": "github:johnameyer/pocket-tcg#ce18c65961817942dec92729f470849fb319f45b",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^2.0.2",
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.2",
+    "@stylistic/eslint-plugin": "^2.13.0",
+    "@types/chai": "^5.2.2",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.10.0",
+    "@types/yargs": "^17.0.32",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "chai": "^5.3.3",
+    "eslint": "^9.39.2",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "globals": "^17.3.0",
+    "mocha": "^10.8.2",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typedoc": "^0.28.4",
+    "typescript": "5.7.2",
+    "typescript-eslint": "^8.54.0"
+  },
+  "sideEffects": false
+}
