@@ -26,6 +26,7 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "madge": "pnpm dlx madge --circular --extensions ts ./src",
     "debug": "ts-node-dev --rs=false --inspect --transpileOnly src/start.ts start",
+    "start": "node dist/start.js",
     "test": "pnpm tsc --project tsconfig.spec.json && mocha --recursive ./spec --extension spec.ts",
     "prepack": "pnpm clean && pnpm build"
   },
@@ -33,7 +34,9 @@
     "url": "https://github.com/johnameyer/pocket-tcg/issues"
   },
   "dependencies": {
-    "@cards-ts/pocket-tcg": "github:johnameyer/pocket-tcg#ce18c65961817942dec92729f470849fb319f45b",
+    "@cards-ts/core": "github:johnameyer/cards-ts#feature/get-validation-error&path:libs/core",
+    "@cards-ts/ismcts-ai": "github:johnameyer/ismcts",
+    "@cards-ts/pocket-tcg": "github:johnameyer/pocket-tcg",
     "yargs": "^17.7.2"
   },
   "devDependencies": {

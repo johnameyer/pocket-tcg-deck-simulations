@@ -77,7 +77,6 @@ export default defineConfig([
             '@stylistic/keyword-spacing': 'error',
             '@stylistic/linebreak-style': 'error',
             '@stylistic/lines-between-class-members': 'error',
-            '@stylistic/multiline-comment-style': 'error',
             '@stylistic/new-parens': 'error',
             '@stylistic/newline-per-chained-call': 'error',
             '@stylistic/no-multi-spaces': 'error',

@@ -4,3 +4,4 @@ tsconfig.tsbuildinfo
 npm-debug.log
 docs
 package-lock.json
+game_logs

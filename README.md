@@ -14,7 +14,70 @@ Developed mainly though generative AI so even with test coverage there is a chan
 
 ## Running
 
-...
+### CLI Usage
+
+The `simulate` command runs games between two decks and reports win rates. Decks are loaded from game-data exports:
+
+```bash
+pnpm start simulate --config ../game-data
+```
+
+**Options:**
+- `--config` (required): Path to game-data module or export (e.g., `../game-data` or `../game-data/dist/index.js`)
+- `--deck1-id`: Deck ID to load (e.g., `suicune-greninja`). Uses first deck if not specified.
+- `--deck2-id`: Deck ID to load (e.g., `charizard-sylveon`). Uses second deck if not specified.
+- `--games`: Number of games to simulate (default: 10)
+- `--handler`: Bot handler strategy: `default` or `ismcts` (default: `default`)
+- `--ismcts-iterations`: Number of ISMCTS iterations (default: 100)
+- `--ismcts-max-depth`: Max depth for ISMCTS simulation (default: 15)
+
+**Examples:**
+
+Compare first two available decks:
+```bash
+pnpm start simulate --config ../game-data --games 100
+```
+
+Compare specific decks:
+```bash
+pnpm start simulate \
+  --config ../game-data \
+  --deck1-id "suicune-greninja" \
+  --deck2-id "charizard-sylveon" \
+  --games 100
+```
+
+Use ISMCTS strategy:
+```bash
+pnpm start simulate \
+  --config ../game-data \
+  --handler ismcts \
+  --ismcts-iterations 50 \
+  --ismcts-max-depth 20
+```
+
+### Programmatic Usage
+
+```typescript
+import { SimulationRunner, DeckConfiguration } from '@cards-ts/pocket-tcg';
+
+const runner = new SimulationRunner();
+
+const deck1: DeckConfiguration = {
+  name: 'Deck 1',
+  cardIds: ['card1', 'card2', 'card3'],
+  energyTypes: ['fire', 'fire', 'water'],
+};
+
+const deck2: DeckConfiguration = {
+  name: 'Deck 2',
+  cardIds: ['card4', 'card5', 'card6'],
+  energyTypes: ['grass', 'grass', 'grass'],
+};
+
+const stats = await runner.runSimulation(deck1, deck2, 100);
+console.log(`${deck1.name} win rate: ${(stats.player0WinRate * 100).toFixed(1)}%`);
+```
 
 ## Development
 
