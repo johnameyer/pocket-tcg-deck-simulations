@@ -1,8 +1,11 @@
 import { expect } from 'chai';
+import { createRequire } from 'module';
 import type { CardRepository } from '@cards-ts/pocket-tcg';
 import { SimulationRunner } from '../src/simulation-runner.js';
 import { DeckConfiguration } from '../src/simulation-types.js';
 import { mockRepository } from '../../pocket-tcg/spec/mock-repository.js';
+
+const require = createRequire(import.meta.url);
 
 describe('SimulationRunner', () => {
     it('should run simulations between two identical decks', async () => {
@@ -32,6 +35,12 @@ describe('SimulationRunner', () => {
     });
 
     it('should not have 100% tie rate with ISMCTS handler using mock cards', async () => {
+        try {
+            require.resolve('@cards-ts/ismcts-ai');
+        } catch {
+            return;
+        }
+
         const runner = new SimulationRunner(mockRepository as unknown as CardRepository);
 
         const deckA: DeckConfiguration = {

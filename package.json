@@ -34,9 +34,8 @@
     "url": "https://github.com/johnameyer/pocket-tcg/issues"
   },
   "dependencies": {
-    "@cards-ts/core": "github:johnameyer/cards-ts#feature/get-validation-error&path:libs/core",
-    "@cards-ts/ismcts-ai": "github:johnameyer/ismcts",
-    "@cards-ts/pocket-tcg": "github:johnameyer/pocket-tcg",
+    "@cards-ts/core": "0.8.2",
+    "@cards-ts/pocket-tcg": "https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/2b571c44f24721278d81ac6f87a80e747b5a735e",
     "yargs": "^17.7.2"
   },
   "devDependencies": {

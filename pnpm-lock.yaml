@@ -9,13 +9,10 @@ importers:
   .:
     dependencies:
       '@cards-ts/core':
-        specifier: github:johnameyer/cards-ts#feature/get-validation-error&path:libs/core
-        version: https://codeload.github.com/johnameyer/cards-ts/tar.gz/a59b892970a10afa34a9254c323e72b4951b32f8#path:libs/core(@types/node@22.19.11)
-      '@cards-ts/ismcts-ai':
-        specifier: github:johnameyer/ismcts
-        version: https://codeload.github.com/johnameyer/ismcts/tar.gz/ec8b1ebfa24208745b4b8e08c0c88707ac7c3520(@types/node@22.19.11)
+        specifier: 0.8.2
+        version: 0.8.2(@types/node@22.19.11)
       '@cards-ts/pocket-tcg':
-        specifier: github:johnameyer/pocket-tcg
+        specifier: https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/2b571c44f24721278d81ac6f87a80e747b5a735e
         version: https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/2b571c44f24721278d81ac6f87a80e747b5a735e(@types/node@22.19.11)
       yargs:
         specifier: ^17.7.2
@@ -93,14 +90,6 @@ packages:
   '@cards-ts/core@https://codeload.github.com/johnameyer/cards-ts/tar.gz/a59b892970a10afa34a9254c323e72b4951b32f8#path:libs/core':
     resolution: {path: libs/core, tarball: https://codeload.github.com/johnameyer/cards-ts/tar.gz/a59b892970a10afa34a9254c323e72b4951b32f8}
     version: 0.8.2
-
-  '@cards-ts/euchre@0.8.3':
-    resolution: {integrity: sha512-8OD2fafFnd8TnehLgqgoq8ppfX6ctzFKQ4A9l6Jl5Y9x+/R+oZ2OAmtomzQ6zdhXtuToD/5oAPiU3/Q0fUTlyA==}
-    hasBin: true
-
-  '@cards-ts/ismcts-ai@https://codeload.github.com/johnameyer/ismcts/tar.gz/ec8b1ebfa24208745b4b8e08c0c88707ac7c3520':
-    resolution: {tarball: https://codeload.github.com/johnameyer/ismcts/tar.gz/ec8b1ebfa24208745b4b8e08c0c88707ac7c3520}
-    version: 0.0.0
 
   '@cards-ts/pocket-tcg@https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/2b571c44f24721278d81ac6f87a80e747b5a735e':
     resolution: {tarball: https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/2b571c44f24721278d81ac6f87a80e747b5a735e}
@@ -1939,22 +1928,6 @@ snapshots:
       inquirer-select-line: 1.1.3
       inquirer-table-prompt: 0.2.1
       rxjs: 7.8.2
-    transitivePeerDependencies:
-      - '@types/node'
-
-  '@cards-ts/euchre@0.8.3(@types/node@22.19.11)':
-    dependencies:
-      '@cards-ts/core': 0.8.2(@types/node@22.19.11)
-      '@cards-ts/state-machine': 0.8.2(@types/node@22.19.11)
-      yargs: 17.7.2
-    transitivePeerDependencies:
-      - '@types/node'
-
-  '@cards-ts/ismcts-ai@https://codeload.github.com/johnameyer/ismcts/tar.gz/ec8b1ebfa24208745b4b8e08c0c88707ac7c3520(@types/node@22.19.11)':
-    dependencies:
-      '@cards-ts/core': https://codeload.github.com/johnameyer/cards-ts/tar.gz/a59b892970a10afa34a9254c323e72b4951b32f8#path:libs/core(@types/node@22.19.11)
-      '@cards-ts/euchre': 0.8.3(@types/node@22.19.11)
-      '@cards-ts/pocket-tcg': https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/2b571c44f24721278d81ac6f87a80e747b5a735e(@types/node@22.19.11)
     transitivePeerDependencies:
       - '@types/node'
 
