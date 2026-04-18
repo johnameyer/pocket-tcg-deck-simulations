@@ -28,6 +28,7 @@ describe('SimulationRunner', () => {
         expect(result.player1WinRate).to.be.closeTo(result.outcomes.player1Wins / 3, 0.001);
         expect(result.player1WinRate).to.be.closeTo(result.outcomes.player2Wins / 3, 0.001);
         expect(result.tieRate).to.be.closeTo(result.outcomes.ties / 3, 0.001);
+        expect(result.cardUsageSummary).to.be.an('array');
     });
 
     it('should not have 100% tie rate with ISMCTS handler using mock cards', async () => {
@@ -54,5 +55,6 @@ describe('SimulationRunner', () => {
         expect(result.tieRate).to.be.lessThan(1, 'Tie rate should be less than 100% - some games should have a decisive winner');
         // At least one decisive game should occur
         expect(result.outcomes.player2Wins + result.outcomes.player1Wins).to.be.greaterThan(0, 'At least one game should have a decisive outcome');
+        expect(result.cardUsageSummary).to.be.an('array');
     });
 });
