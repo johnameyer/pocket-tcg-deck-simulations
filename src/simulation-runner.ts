@@ -29,18 +29,17 @@ export class SimulationRunner {
         if (strategy === 'ismcts') {
             try {
                 // Dynamically import ismcts using the main entry point
-                const dynamicImport = new Function('specifier', 'return import(specifier);') as (specifier: string) => Promise<Record<string, unknown>>;
-                const ismctsModule = await dynamicImport('@cards-ts/ismcts-ai');
+                const ismctsModule = await import('@cards-ts/ismcts-ai');
                 
-                const ISMCTSDecisionStrategy = ismctsModule.ISMCTSDecisionStrategy as new (...args: unknown[]) => unknown;
-                const PocketTCGHandler = ismctsModule.PocketTCGHandler as new (...args: unknown[]) => unknown;
-                const createPocketTCGAdapterConfig = ismctsModule.createPocketTCGAdapterConfig as (repository: CardRepository) => unknown;
+                const ISMCTSDecisionStrategy = ismctsModule.ISMCTSDecisionStrategy;
+                const PocketTCGHandler = ismctsModule.PocketTCGHandler;
+                const createPocketTCGAdapterConfig = ismctsModule.createPocketTCGAdapterConfig;
                 
                 // @ts-ignore Private property mismatch
                 const adapterConfig = createPocketTCGAdapterConfig(this.cardRepository);
                 
                 // Build ISMCTS config only with provided options (don't override defaults with empty object)
-                let ismctsConfig: { iterations?: number; maxDepth?: number } | undefined;
+                let ismctsConfig: import('@cards-ts/ismcts-ai').ISMCTSConfig | undefined;
                 if (ismctsOptions?.iterations !== undefined || ismctsOptions?.maxDepth !== undefined) {
                     ismctsConfig = {} as any;
                     if (ismctsOptions?.iterations !== undefined) {
@@ -65,9 +64,6 @@ export class SimulationRunner {
                     return new HandlerChain([ captureHandler as any, handler as any ]);
                 });
             } catch (error) {
-                if (error instanceof Error && /Cannot find package '@cards-ts\/ismcts-ai'/.test(error.message)) {
-                    throw new Error('ISMCTS handler requires optional dependency @cards-ts/ismcts-ai to be installed.');
-                }
                 throw error;
             }
         }
