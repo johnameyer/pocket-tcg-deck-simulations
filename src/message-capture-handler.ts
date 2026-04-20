@@ -12,11 +12,54 @@ export class MessageCaptureHandler extends MessageHandler<HandlerData, ResponseM
     private lastPlayerPositions: Set<number> = new Set();
     private lastLogIndex: number = -1;
 
+    private cardUsages: Record<string, number> = {};
+
     constructor(private messageLog: string[]) {
         super();
     }
 
+    private collectTemplateIds(value: unknown): string[] {
+        if (!value) {
+            return [];
+        }
+
+        if (Array.isArray(value)) {
+            return value.flatMap(item => this.collectTemplateIds(item));
+        }
+
+        if (typeof value !== 'object') {
+            return [];
+        }
+
+        const objectValue = value as Record<string, unknown>;
+        const templateIds: string[] = [];
+        const templateId = objectValue.templateId;
+
+        if (typeof templateId === 'string') {
+            templateIds.push(templateId);
+        }
+
+        for (const nestedValue of Object.values(objectValue)) {
+            templateIds.push(...this.collectTemplateIds(nestedValue));
+        }
+
+        return templateIds;
+    }
+
+    private trackCardUsages(msg: Message): void {
+        const templateIds = this.collectTemplateIds(msg.components);
+        for (const templateId of templateIds) {
+            this.cardUsages[templateId] = (this.cardUsages[templateId] ?? 0) + 1;
+        }
+    }
+
+    public getCardUsages(): Record<string, number> {
+        return { ...this.cardUsages };
+    }
+
     public handleMessage = (handlerData: HandlerData, _response: HandlerResponsesQueue<ResponseMessage>, msg: Message) => {
+        this.trackCardUsages(msg);
+
         // Render message using components
         const rendered = Message.defaultTransformer(msg.components);
         const messageType = (msg.constructor as any).name || 'UnknownMessage';
@@ -64,5 +107,6 @@ export class MessageCaptureHandler extends MessageHandler<HandlerData, ResponseM
         this.lastMessageContent = null;
         this.lastPlayerPositions.clear();
         this.lastLogIndex = -1;
+        this.cardUsages = {};
     }
 }

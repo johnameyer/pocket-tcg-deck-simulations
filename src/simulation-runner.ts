@@ -3,7 +3,7 @@ import { ControllerState, HandlerChain } from '@cards-ts/core';
 import { GameParams } from '@cards-ts/pocket-tcg/dist/game-params.js';
 import { Controllers } from '@cards-ts/pocket-tcg/dist/controllers/controllers.js';
 import { DefaultBotHandler } from '@cards-ts/pocket-tcg/dist/handlers/default-bot-handler.js';
-import { DeckConfiguration, GameOutcome, GameResult, SimulationResult, SimulationStats } from './simulation-types.js';
+import { CardUsageSummary, DeckConfiguration, GameOutcome, GameResult, SimulationResult, SimulationStats } from './simulation-types.js';
 import { MessageCaptureHandler } from './message-capture-handler.js';
 import * as fs from 'fs';
 
@@ -137,11 +137,15 @@ export class SimulationRunner {
         
         const finalState = driver.getState() as ControllerState<Controllers>;
         const result = this.determineWinner(finalState, deck0Position, deck1Position, stepCount);
+        const cardUsages = this.messageCaptureHandlers[this.messageCaptureHandlers.length - 1]?.getCardUsages() ?? {};
         
         // Save game log to file
         this.saveGameLog(gameNumber, result, stepCount, names);
         
-        return result;
+        return {
+            ...result,
+            cardUsages,
+        };
     }
 
     /**
@@ -328,7 +332,39 @@ export class SimulationRunner {
             player1Points,
             deck0PlayerPosition,
             deck1PlayerPosition,
+            cardUsages: {},
         };
+    }
+
+    private buildCardUsageSummary(gameResults: GameResult[]): CardUsageSummary[] {
+        const summaryByCard: Record<string, CardUsageSummary> = {};
+
+        for (const gameResult of gameResults) {
+            for (const [ cardId, uses ] of Object.entries(gameResult.cardUsages)) {
+                const existing = summaryByCard[cardId];
+                if (!existing) {
+                    let cardName = cardId;
+                    try {
+                        cardName = this.cardRepository.getCard(cardId).data.name ?? cardId;
+                    } catch {
+                        cardName = cardId;
+                    }
+
+                    summaryByCard[cardId] = {
+                        cardId,
+                        cardName,
+                        uses: 0,
+                        gamesPlayed: 0,
+                    };
+                }
+
+                summaryByCard[cardId].uses += uses;
+                summaryByCard[cardId].gamesPlayed += 1;
+            }
+        }
+
+        return Object.values(summaryByCard)
+            .sort((a, b) => b.uses - a.uses || a.cardName.localeCompare(b.cardName));
     }
 
     /**
@@ -371,6 +407,7 @@ export class SimulationRunner {
             totalGames: numGames,
             outcomes,
             gameResults,
+            cardUsageSummary: this.buildCardUsageSummary(gameResults),
         };
 
         return {

@@ -186,6 +186,15 @@ async function runSimulation(config: SimulationConfig, gameRunner: SimulationRun
     console.log(`    - When Player 0: ${deck2WhenPlayer0} wins`);
     console.log(`    - When Player 1: ${deck2WhenPlayer1} wins`);
     console.log(`  Ties: ${stats.outcomes.ties} (${(stats.tieRate * 100).toFixed(1)}%)`);
+    console.log('');
+    console.log('Card Usage Summary:');
+    if (stats.cardUsageSummary.length === 0) {
+        console.log('  No card plays captured');
+    } else {
+        stats.cardUsageSummary.forEach((entry) => {
+            console.log(`  ${entry.cardName} (${entry.cardId}): ${entry.uses} uses across ${entry.gamesPlayed} games`);
+        });
+    }
 }
 
 void yargs(hideBin(process.argv))

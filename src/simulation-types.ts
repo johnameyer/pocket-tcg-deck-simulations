@@ -14,6 +14,14 @@ export type GameResult = {
     player1Points: number;
     deck0PlayerPosition: 0 | 1;
     deck1PlayerPosition: 0 | 1;
+    cardUsages: Record<string, number>;
+};
+
+export type CardUsageSummary = {
+    cardId: string;
+    cardName: string;
+    uses: number;
+    gamesPlayed: number;
 };
 
 export type SimulationResult = {
@@ -26,6 +34,7 @@ export type SimulationResult = {
         ties: number;
     };
     gameResults: GameResult[];
+    cardUsageSummary: CardUsageSummary[];
 };
 
 export type SimulationStats = SimulationResult & {
