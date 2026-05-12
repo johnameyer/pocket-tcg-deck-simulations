@@ -8,18 +8,21 @@ import { ResponseMessage } from '@cards-ts/pocket-tcg/dist/messages/response-mes
  */
 export class MessageCaptureHandler extends MessageHandler<HandlerData, ResponseMessage> {
     private lastMessageType: string | null = null;
+
     private lastMessageContent: string | null = null;
+
     private lastPlayerPositions: Set<number> = new Set();
+
     private lastLogIndex: number = -1;
 
     constructor(private messageLog: string[]) {
         super();
     }
 
-    public handleMessage = (handlerData: HandlerData, _response: HandlerResponsesQueue<ResponseMessage>, msg: Message) => {
+    public handleMessage = (handlerData: HandlerData, _response: HandlerResponsesQueue<ResponseMessage>, msg: Message): void => {
         // Render message using components
         const rendered = Message.defaultTransformer(msg.components);
-        const messageType = (msg.constructor as any).name || 'UnknownMessage';
+        const messageType = msg.constructor.name || 'UnknownMessage';
         const currentPlayerPosition = handlerData.players.position;
 
         // Check if message content is player-specific (contains "You" or other player-specific language)
@@ -33,8 +36,8 @@ export class MessageCaptureHandler extends MessageHandler<HandlerData, ResponseM
             // Update the last log entry with combined player indicators
             if (this.lastLogIndex >= 0) {
                 // If both players received the same broadcast message, use '-'
-                const playerDisplay = this.lastPlayerPositions.size === 2 ? '-' : 
-                    Array.from(this.lastPlayerPositions)
+                const playerDisplay = this.lastPlayerPositions.size === 2 ? '-' 
+                    : Array.from(this.lastPlayerPositions)
                         .map(pos => pos === 0 ? '1' : pos === 1 ? '2' : '-')[0];
                 
                 const contentPart = rendered ? ` ${rendered}` : '';
@@ -43,10 +46,10 @@ export class MessageCaptureHandler extends MessageHandler<HandlerData, ResponseM
         } else {
             // Different message, log it
             const playerDisplay = currentPlayerPosition === 0 ? '1' : currentPlayerPosition === 1 ? '2' : '-';
-            const fullMessage = rendered 
-                ? `[Player ${playerDisplay}] [${messageType}] ${rendered}` 
+            const fullMessage = rendered
+                ? `[Player ${playerDisplay}] [${messageType}] ${rendered}`
                 : `[Player ${playerDisplay}] [${messageType}]`;
-            
+
             this.messageLog.push(fullMessage);
             this.lastLogIndex = this.messageLog.length - 1;
             this.lastMessageType = messageType;
