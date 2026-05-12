@@ -14,7 +14,6 @@ export type ISMCTSOptions = {
 
 type GameFactoryInstance = ReturnType<typeof gameFactory>;
 type PlayerHandlers = Parameters<GameFactoryInstance['getGameDriver']>[0];
-type BotHandler = PlayerHandlers[number];
 type ISMCTSConfig = {
     iterations?: number;
     maxDepth?: number;
@@ -77,11 +76,13 @@ export class SimulationRunner {
             this.messageCaptureHandlers.push(captureHandler);
 
             const ismctsStrategy = new ismctsModule.ISMCTSDecisionStrategy(adapterConfig, ismctsConfig);
-            const botHandler = new ismctsModule.PocketTCGHandler(ismctsStrategy) as unknown as BotHandler;
+            const botHandler = new ismctsModule.PocketTCGHandler(ismctsStrategy);
 
+             
             return Array.from({ length: 2 }, () => {
                 // Add the same capture handler first in the chain for both players
-                return new HandlerChain([ captureHandler, botHandler ]);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return new HandlerChain([ captureHandler as any, botHandler as any ]);
             });
         }
 
@@ -92,10 +93,12 @@ export class SimulationRunner {
         const captureHandler = new MessageCaptureHandler(this.messageLog);
         this.messageCaptureHandlers.push(captureHandler);
         
+         
         return Array.from({ length: 2 }, () => {
             const defaultChain = factory.getDefaultBotHandlerChain();
-            // Prepend the same capture handler to the default chain for both players.
-            return new HandlerChain([ captureHandler ]).append(defaultChain);
+            // Prepend the same capture handler to the default chain for both players
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return new HandlerChain([ captureHandler as any ]).append(defaultChain as any);
         });
     }
 
@@ -323,7 +326,7 @@ export class SimulationRunner {
             outcome = 'player1';
         } else if (player1Points >= 3 && player1Points > player0Points) {
             outcome = 'player2';
-        } else if (turnCounter && turnCounter.turnNumber >= turnCounter.maxTurns) {
+        } else if (turnCounter && turnCounter.turnNumber !== undefined && turnCounter.maxTurns !== undefined && turnCounter.turnNumber >= turnCounter.maxTurns) {
             if (debug) {
                 console.log(`[SIMULATION] Game reached max turns: ${turnCounter.turnNumber}/${turnCounter.maxTurns} - TIE`);
             }
