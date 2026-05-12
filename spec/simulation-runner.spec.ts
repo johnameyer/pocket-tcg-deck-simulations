@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import type { CardRepository } from '@cards-ts/pocket-tcg';
 import { SimulationRunner } from '../src/simulation-runner.js';
 import { DeckConfiguration } from '../src/simulation-types.js';
-import { mockRepository } from '../../pocket-tcg/spec/mock-repository.js';
+import { mockRepository } from './mock-repository.js';
 
 describe('SimulationRunner', () => {
     it('should run simulations between two identical decks', async () => {
