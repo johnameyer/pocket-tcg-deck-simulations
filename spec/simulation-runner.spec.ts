@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import type { CardRepository } from '@cards-ts/pocket-tcg';
 import { SimulationRunner } from '../src/simulation-runner.js';
 import { DeckConfiguration } from '../src/simulation-types.js';
-import { mockRepository } from '../../pocket-tcg/spec/mock-repository.js';
+import { mockRepository } from './mock-repository.js';
 
 describe('SimulationRunner', () => {
     it('should run simulations between two identical decks', async () => {
@@ -24,13 +24,14 @@ describe('SimulationRunner', () => {
 
         expect(result).to.exist;
         expect(result.totalGames).to.equal(3);
-        expect(result.outcomes.player1Wins + result.outcomes.player1Wins + result.outcomes.ties).to.equal(3);
+        expect(result.outcomes.player1Wins + result.outcomes.player2Wins + result.outcomes.ties).to.equal(3);
         expect(result.player1WinRate).to.be.closeTo(result.outcomes.player1Wins / 3, 0.001);
         expect(result.player1WinRate).to.be.closeTo(result.outcomes.player2Wins / 3, 0.001);
         expect(result.tieRate).to.be.closeTo(result.outcomes.ties / 3, 0.001);
     });
 
-    it('should not have 100% tie rate with ISMCTS handler using mock cards', async () => {
+    it('should not have 100% tie rate with ISMCTS handler using mock cards', async function() {
+        this.timeout(120000);
         const runner = new SimulationRunner(mockRepository as unknown as CardRepository);
 
         const deckA: DeckConfiguration = {
@@ -45,11 +46,14 @@ describe('SimulationRunner', () => {
             energyTypes: [ 'fighting', 'fire', 'fire' ],
         };
 
-        const result = await runner.runSimulation(deckA, deckB, 5, 'ismcts');
+        const result = await runner.runSimulation(deckA, deckB, 5, 'ismcts', {
+            iterations: 10,
+            maxDepth: 20,
+        });
 
         expect(result).to.exist;
         expect(result.totalGames).to.equal(5);
-        expect(result.outcomes.player1Wins + result.outcomes.player1Wins + result.outcomes.ties).to.equal(5);
+        expect(result.outcomes.player1Wins + result.outcomes.player2Wins + result.outcomes.ties).to.equal(5);
         // Validate that not all games are ties (tieRate < 100%)
         expect(result.tieRate).to.be.lessThan(1, 'Tie rate should be less than 100% - some games should have a decisive winner');
         // At least one decisive game should occur

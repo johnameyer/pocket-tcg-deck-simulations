@@ -1,11 +1,10 @@
+import * as fs from 'fs';
 import { gameFactory, CardRepository } from '@cards-ts/pocket-tcg';
 import { ControllerState, HandlerChain } from '@cards-ts/core';
 import { GameParams } from '@cards-ts/pocket-tcg/dist/game-params.js';
 import { Controllers } from '@cards-ts/pocket-tcg/dist/controllers/controllers.js';
-import { DefaultBotHandler } from '@cards-ts/pocket-tcg/dist/handlers/default-bot-handler.js';
 import { DeckConfiguration, GameOutcome, GameResult, SimulationResult, SimulationStats } from './simulation-types.js';
 import { MessageCaptureHandler } from './message-capture-handler.js';
-import * as fs from 'fs';
 
 export type HandlerStrategy = 'default' | 'ismcts';
 export type ISMCTSOptions = {
@@ -13,9 +12,37 @@ export type ISMCTSOptions = {
     maxDepth?: number;
 };
 
+type GameFactoryInstance = ReturnType<typeof gameFactory>;
+type PlayerHandlers = Parameters<GameFactoryInstance['getGameDriver']>[0];
+type ISMCTSConfig = {
+    iterations?: number;
+    maxDepth?: number;
+};
+type ISMCTSModule = {
+    ISMCTSDecisionStrategy: new (adapterConfig: unknown, config?: ISMCTSConfig) => unknown;
+    PocketTCGHandler: new (strategy: unknown) => unknown;
+    createPocketTCGAdapterConfig: (cardRepository: CardRepository) => unknown;
+};
+type CreatureInstance = {
+    evolutionStack?: Array<{ templateId?: string }>;
+    damageTaken?: number;
+};
+type FieldState = {
+    creatures?: Array<CreatureInstance[] | undefined>;
+};
+type TurnCounterState = {
+    turnNumber?: number;
+    maxTurns?: number;
+};
+type CardInstanceLike = {
+    templateId?: string;
+};
+
 export class SimulationRunner {
     private cardRepository: CardRepository;
+
     private messageLog: string[] = [];
+
     private messageCaptureHandlers: MessageCaptureHandler[] = [];
 
     constructor(cardRepository?: CardRepository) {
@@ -25,47 +52,38 @@ export class SimulationRunner {
     /**
      * Create a bot handler chain for the given strategy
      */
-    private async createHandlerChainAsync(strategy: HandlerStrategy, ismctsOptions?: ISMCTSOptions): Promise<any> {
+    private async createHandlerChainAsync(strategy: HandlerStrategy, ismctsOptions?: ISMCTSOptions): Promise<PlayerHandlers> {
         if (strategy === 'ismcts') {
-            try {
-                // Dynamically import ismcts using the main entry point
-                const ismctsModule = await import('@cards-ts/ismcts-ai');
-                
-                const ISMCTSDecisionStrategy = ismctsModule.ISMCTSDecisionStrategy;
-                const PocketTCGHandler = ismctsModule.PocketTCGHandler;
-                const createPocketTCGAdapterConfig = ismctsModule.createPocketTCGAdapterConfig;
-                
-                // @ts-ignore Private property mismatch
-                const adapterConfig = createPocketTCGAdapterConfig(this.cardRepository);
-                
-                // Build ISMCTS config only with provided options (don't override defaults with empty object)
-                let ismctsConfig: import('@cards-ts/ismcts-ai').ISMCTSConfig | undefined;
-                if (ismctsOptions?.iterations !== undefined || ismctsOptions?.maxDepth !== undefined) {
-                    ismctsConfig = {} as any;
-                    if (ismctsOptions?.iterations !== undefined) {
-                        (ismctsConfig as any).iterations = ismctsOptions.iterations;
-                    }
-                    if (ismctsOptions?.maxDepth !== undefined) {
-                        (ismctsConfig as any).maxDepth = ismctsOptions.maxDepth;
-                    }
+            // Dynamically import ismcts using the main entry point
+            const ismctsModule = (await import('@cards-ts/ismcts-ai')) as unknown as ISMCTSModule;
+
+            const adapterConfig = ismctsModule.createPocketTCGAdapterConfig(this.cardRepository);
+
+            // Build ISMCTS config only with provided options (don't override defaults with empty object)
+            let ismctsConfig: ISMCTSConfig | undefined;
+            if (ismctsOptions?.iterations !== undefined || ismctsOptions?.maxDepth !== undefined) {
+                ismctsConfig = {};
+                if (ismctsOptions?.iterations !== undefined) {
+                    ismctsConfig.iterations = ismctsOptions.iterations;
                 }
-                
-                // Create a single message capture handler shared by both players
-                const captureHandler = new MessageCaptureHandler(this.messageLog);
-                this.messageCaptureHandlers.push(captureHandler);
-                
-                // Create fresh handlers for each player with shared message capture handler prepended
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                return Array.from({ length: 2 }, () => {
-                    const ismctsStrategy = new ISMCTSDecisionStrategy(adapterConfig, ismctsConfig);
-                    const handler = new PocketTCGHandler(ismctsStrategy);
-                    // Add same capture handler first in the chain for both players
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    return new HandlerChain([ captureHandler as any, handler as any ]);
-                });
-            } catch (error) {
-                throw error;
+                if (ismctsOptions?.maxDepth !== undefined) {
+                    ismctsConfig.maxDepth = ismctsOptions.maxDepth;
+                }
             }
+
+            // Create a single message capture handler shared by both players
+            const captureHandler = new MessageCaptureHandler(this.messageLog);
+            this.messageCaptureHandlers.push(captureHandler);
+
+            const ismctsStrategy = new ismctsModule.ISMCTSDecisionStrategy(adapterConfig, ismctsConfig);
+            const botHandler = new ismctsModule.PocketTCGHandler(ismctsStrategy);
+
+             
+            return Array.from({ length: 2 }, () => {
+                // Add the same capture handler first in the chain for both players
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return new HandlerChain([ captureHandler as any, botHandler as any ]);
+            });
         }
 
         // For non-ISMCTS, use default strategy
@@ -75,9 +93,10 @@ export class SimulationRunner {
         const captureHandler = new MessageCaptureHandler(this.messageLog);
         this.messageCaptureHandlers.push(captureHandler);
         
+         
         return Array.from({ length: 2 }, () => {
             const defaultChain = factory.getDefaultBotHandlerChain();
-            // Prepend same capture handler to the default chain for both players
+            // Prepend the same capture handler to the default chain for both players
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return new HandlerChain([ captureHandler as any ]).append(defaultChain as any);
         });
@@ -86,9 +105,9 @@ export class SimulationRunner {
     /**
      * Run a single game between two decks and return the outcome with points
      */
-    private runSingleGame(deck0: DeckConfiguration, deck1: DeckConfiguration, handlers: any, gameNumber: number): GameResult {
+    private runSingleGame(deck0: DeckConfiguration, deck1: DeckConfiguration, handlers: PlayerHandlers, gameNumber: number): GameResult {
         // Reset message log and handlers for this game (don't create a new array!)
-        this.messageLog.length = 0;  // Clear array in-place
+        this.messageLog.length = 0; // Clear array in-place
         this.messageCaptureHandlers.forEach(h => h.resetForNewGame());
         
         // Randomly assign decks to player positions
@@ -123,14 +142,10 @@ export class SimulationRunner {
         const maxSteps = 200;
         let stepCount = 0;
         
-        try {
-            while (!driver.getState().completed && stepCount < maxSteps) {
-                driver.handleSyncResponses();
-                driver.resume();
-                stepCount++;
-            }
-        } catch (error) {
-            throw error;
+        while (!driver.getState().completed && stepCount < maxSteps) {
+            driver.handleSyncResponses();
+            driver.resume();
+            stepCount++;
         }
         
         console.log(`[SIMULATION] Game completed after ${stepCount} steps. Game completed: ${driver.getState().completed}`);
@@ -163,18 +178,19 @@ export class SimulationRunner {
             `Duration: ${stepCount} steps`,
             `Player 1: ${playerNames[0]}`,
             `Player 2: ${playerNames[1]}`,
-            ``,
-            `=== OUTCOME ===`,
+            '',
+            '=== OUTCOME ===',
             `Winner: ${result.outcome}`,
             `Player 1 Points: ${result.player0Points}`,
             `Player 2 Points: ${result.player1Points}`,
-            ``,
-            `=== MESSAGES ===`,
+            '',
+            '=== MESSAGES ===',
             ...this.messageLog,
         ].join('\n');
         
         fs.writeFileSync(fileName, logContent);
     }
+
     private determineWinner(state: ControllerState<Controllers>, deck0PlayerPosition: 0 | 1, deck1PlayerPosition: 0 | 1, stepCount: number): GameResult {
         const debug = process.env.DEBUG_SIMULATION === 'true';
         
@@ -185,23 +201,23 @@ export class SimulationRunner {
         
         // Check turn counter
          
-        const turnCounter = (state as unknown as any).turnCounter;
+        const turnCounter = (state as unknown as { turnCounter?: TurnCounterState }).turnCounter;
         
         if (debug) {
-            console.log('[DEBUG] Full state keys:', Object.keys(state as any));
+            console.log('[DEBUG] Full state keys:', Object.keys(state as object));
             console.log('[DEBUG] turnCounter structure:', JSON.stringify(turnCounter));
         }
         console.log(`[SIMULATION] Turn counter: ${turnCounter?.turnNumber}/${turnCounter?.maxTurns}`);
         
         // Check creature field states
-        const fieldState = (state as unknown as any).field;
+        const fieldState = (state as unknown as { field?: FieldState }).field;
         const p0Creatures = fieldState?.creatures?.[0] ?? [];
         const p1Creatures = fieldState?.creatures?.[1] ?? [];
         
         // Log creature HP details
-        const formatCreatures = (creatures: any[]) => {
+        const formatCreatures = (creatures: CreatureInstance[]) => {
             if (creatures.length === 0) {
-                return 'None'; 
+                return 'None';
             }
             return creatures
                 .map(c => {
@@ -221,8 +237,7 @@ export class SimulationRunner {
                     try {
                         const card = this.cardRepository.getCard(templateId);
                         const name = card.data.name ?? 'Unknown';
-                        // CreatureData has maxHp property
-                        const maxHp = (card.data as any).maxHp ?? 0;
+                        const maxHp = (card.data as { maxHp?: number }).maxHp ?? 0;
                         const damageTaken = c?.damageTaken ?? 0;
                         const currentHp = Math.max(0, maxHp - damageTaken);
                         return `${name} (${currentHp}/${maxHp} HP)`;
@@ -244,13 +259,13 @@ export class SimulationRunner {
         console.log(`[SIMULATION] Game duration: ${stepCount} steps`);
         
         // Log discards
-        const discard = (state as unknown as any).discard;
+        const discard = (state as unknown as { discard?: Array<CardInstanceLike[] | undefined> }).discard;
         const p0Discards = discard?.[0] ?? [];
         const p1Discards = discard?.[1] ?? [];
-        
-        const formatDiscards = (discardList: any[]) => {
+
+        const formatDiscards = (discardList: CardInstanceLike[]) => {
             if (discardList.length === 0) {
-                return 'None'; 
+                return 'None';
             }
             return discardList
                 .map(cardInstance => {
@@ -273,13 +288,13 @@ export class SimulationRunner {
         console.log(`[SIMULATION] Discards - P2: ${formatDiscards(p1Discards)}`);
         
         // Log hands
-        const hand = (state as unknown as any).hand;
+        const hand = (state as unknown as { hand?: Array<CardInstanceLike[] | undefined> }).hand;
         const p0Hand = hand?.[0] ?? [];
         const p1Hand = hand?.[1] ?? [];
-        
-        const formatHand = (handList: any[]) => {
+
+        const formatHand = (handList: CardInstanceLike[]) => {
             if (handList.length === 0) {
-                return 'None'; 
+                return 'None';
             }
             return handList
                 .map(cardInstance => {
@@ -311,7 +326,7 @@ export class SimulationRunner {
             outcome = 'player1';
         } else if (player1Points >= 3 && player1Points > player0Points) {
             outcome = 'player2';
-        } else if (turnCounter && turnCounter.turnNumber >= turnCounter.maxTurns) {
+        } else if (turnCounter && turnCounter.turnNumber !== undefined && turnCounter.maxTurns !== undefined && turnCounter.turnNumber >= turnCounter.maxTurns) {
             if (debug) {
                 console.log(`[SIMULATION] Game reached max turns: ${turnCounter.turnNumber}/${turnCounter.maxTurns} - TIE`);
             }

@@ -14,6 +14,10 @@ type SimulationConfig = {
 };
 
 type DeckBuild = Record<string, number>;
+type GameDataModule = {
+    CARDS?: CardRepository;
+    DECKS?: Record<string, { energyTypes: AttachableEnergyType[]; cards: DeckBuild }>;
+};
 
 function validateDeck(deck: DeckConfiguration): void {
     if (!deck.cardIds || deck.cardIds.length === 0) {
@@ -50,29 +54,25 @@ async function loadConfigFromModule(
 ): Promise<{ config: SimulationConfig; repository: CardRepository }> {
     const absolutePath = modulePath.startsWith('/') ? modulePath : path.resolve(process.cwd(), modulePath);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const module = await import(absolutePath) as any;
-
-    const typedConfig = module as Record<string, unknown>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const repository: CardRepository = (typedConfig.CARDS as any) || new CardRepository();
+    const module = await import(absolutePath) as unknown as GameDataModule;
+    const repository: CardRepository = module.CARDS || new CardRepository();
 
     if (process.env.DEBUG_REPOSITORY === 'true') {
-        console.log(`[REPO] Using repository: ${typedConfig.CARDS ? 'from module.CARDS' : 'new empty CardRepository'}`);
+        console.log(`[REPO] Using repository: ${module.CARDS ? 'from module.CARDS' : 'new empty CardRepository'}`);
         try {
             const testCard = repository.getCard('a1-087-froakie');
             console.log(`[REPO] Test card a1-087-froakie: ${testCard.data.name}`);
-        } catch (e) {
+        } catch {
             console.log('[REPO] Test card a1-087-froakie: NOT FOUND');
         }
     }
 
     // Expect DECKS structure from game-data
-    if (!typedConfig.DECKS || typeof typedConfig.DECKS !== 'object') {
+    if (!module.DECKS) {
         throw new Error('Module must export DECKS object from game-data');
     }
 
-    const allDecks: Record<string, { energyTypes: string[]; cards: DeckBuild }> = typedConfig.DECKS as any;
+    const allDecks = module.DECKS;
     const deckKeys = Object.keys(allDecks);
 
     if (deckKeys.length < 2) {

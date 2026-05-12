@@ -2,8 +2,39 @@ name: ci
 on: [push]
 
 jobs:
-  ci:
+  lint:
     runs-on: ubuntu-latest
+    env:
+      # Keep the store outside the project dir so TypeScript doesn't follow symlinks into it
+      # and bake broken relative paths into generated .d.ts files.
+      # npm_config_store_dir for pnpm <v11, pnpm_config_store_dir for v11+.
+      npm_config_store_dir: ~/.pnpm-store
+      pnpm_config_store_dir: ~/.pnpm-store
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: true
+
+      - name: Node 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: pnpm
+
+      - name: Lint
+        run: pnpm lint --no-fix
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      # Keep the store outside the project dir so TypeScript doesn't follow symlinks into it
+      # and bake broken relative paths into generated .d.ts files.
+      # npm_config_store_dir for pnpm <v11, pnpm_config_store_dir for v11+.
+      npm_config_store_dir: ~/.pnpm-store
+      pnpm_config_store_dir: ~/.pnpm-store
     strategy:
       matrix:
         node-version: [20.x]
@@ -14,16 +45,12 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           run_install: true
-          version: latest
 
       - name: Node ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
-        
-      - name: Lint
-        run: pnpm lint --no-fix
 
       - name: Build
         run: pnpm prepack
