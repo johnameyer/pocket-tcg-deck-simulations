@@ -88,6 +88,7 @@ export class SimulationRunner {
 
         // For non-ISMCTS, use default strategy
         const factory = gameFactory(this.cardRepository);
+        const botHandler = factory.getDefaultBotHandler();
         
         // Create a single message capture handler shared by both players
         const captureHandler = new MessageCaptureHandler(this.messageLog);
@@ -95,10 +96,9 @@ export class SimulationRunner {
         
          
         return Array.from({ length: 2 }, () => {
-            const defaultChain = factory.getDefaultBotHandlerChain();
-            // Prepend the same capture handler to the default chain for both players
+            // Keep capture and bot in one flat chain; appending a HandlerChain nests it.
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            return new HandlerChain([ captureHandler as any ]).append(defaultChain as any);
+            return new HandlerChain([ captureHandler as any, botHandler as any ]);
         });
     }
 
