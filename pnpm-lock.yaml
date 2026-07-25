@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@cards-ts/core':
-        specifier: github:johnameyer/cards-ts#feature/get-validation-error&path:libs/core
+        specifier: github:johnameyer/cards-ts#0f5be7f202efde509bece0eacb9a74adacbb9f13&path:libs/core
         version: https://codeload.github.com/johnameyer/cards-ts/tar.gz/0f5be7f202efde509bece0eacb9a74adacbb9f13#path:libs/core(@types/node@22.19.19)
       '@cards-ts/ismcts-ai':
-        specifier: github:johnameyer/ismcts
-        version: https://codeload.github.com/johnameyer/ismcts/tar.gz/355f099abde2a56895e04a6b82996a941cde486b(@types/node@22.19.19)
+        specifier: github:johnameyer/ismcts#4658a8fcd2e01e594bf241665649c9e032baecfa
+        version: https://codeload.github.com/johnameyer/ismcts/tar.gz/4658a8fcd2e01e594bf241665649c9e032baecfa(@types/node@22.19.19)
       '@cards-ts/pocket-tcg':
-        specifier: github:johnameyer/pocket-tcg
-        version: https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/4e5728831ff14692c06fd7d0e24bcc74be5daf75(@types/node@22.19.19)
+        specifier: github:johnameyer/pocket-tcg#b474560fd22f413847d16e0e1be1fe5c0b8b4099
+        version: https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/b474560fd22f413847d16e0e1be1fe5c0b8b4099(@types/node@22.19.19)
       yargs:
         specifier: ^17.7.2
         version: 17.7.2
@@ -98,12 +98,12 @@ packages:
     resolution: {integrity: sha512-8OD2fafFnd8TnehLgqgoq8ppfX6ctzFKQ4A9l6Jl5Y9x+/R+oZ2OAmtomzQ6zdhXtuToD/5oAPiU3/Q0fUTlyA==}
     hasBin: true
 
-  '@cards-ts/ismcts-ai@https://codeload.github.com/johnameyer/ismcts/tar.gz/355f099abde2a56895e04a6b82996a941cde486b':
-    resolution: {tarball: https://codeload.github.com/johnameyer/ismcts/tar.gz/355f099abde2a56895e04a6b82996a941cde486b}
+  '@cards-ts/ismcts-ai@https://codeload.github.com/johnameyer/ismcts/tar.gz/4658a8fcd2e01e594bf241665649c9e032baecfa':
+    resolution: {tarball: https://codeload.github.com/johnameyer/ismcts/tar.gz/4658a8fcd2e01e594bf241665649c9e032baecfa}
     version: 0.0.0
 
-  '@cards-ts/pocket-tcg@https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/4e5728831ff14692c06fd7d0e24bcc74be5daf75':
-    resolution: {tarball: https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/4e5728831ff14692c06fd7d0e24bcc74be5daf75}
+  '@cards-ts/pocket-tcg@https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/b474560fd22f413847d16e0e1be1fe5c0b8b4099':
+    resolution: {tarball: https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/b474560fd22f413847d16e0e1be1fe5c0b8b4099}
     version: 0.0.1
     hasBin: true
 
@@ -1975,15 +1975,15 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@cards-ts/ismcts-ai@https://codeload.github.com/johnameyer/ismcts/tar.gz/355f099abde2a56895e04a6b82996a941cde486b(@types/node@22.19.19)':
+  '@cards-ts/ismcts-ai@https://codeload.github.com/johnameyer/ismcts/tar.gz/4658a8fcd2e01e594bf241665649c9e032baecfa(@types/node@22.19.19)':
     dependencies:
       '@cards-ts/core': https://codeload.github.com/johnameyer/cards-ts/tar.gz/0f5be7f202efde509bece0eacb9a74adacbb9f13#path:libs/core(@types/node@22.19.19)
       '@cards-ts/euchre': 0.8.3(@types/node@22.19.19)
-      '@cards-ts/pocket-tcg': https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/4e5728831ff14692c06fd7d0e24bcc74be5daf75(@types/node@22.19.19)
+      '@cards-ts/pocket-tcg': https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/b474560fd22f413847d16e0e1be1fe5c0b8b4099(@types/node@22.19.19)
     transitivePeerDependencies:
       - '@types/node'
 
-  '@cards-ts/pocket-tcg@https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/4e5728831ff14692c06fd7d0e24bcc74be5daf75(@types/node@22.19.19)':
+  '@cards-ts/pocket-tcg@https://codeload.github.com/johnameyer/pocket-tcg/tar.gz/b474560fd22f413847d16e0e1be1fe5c0b8b4099(@types/node@22.19.19)':
     dependencies:
       '@cards-ts/core': https://codeload.github.com/johnameyer/cards-ts/tar.gz/0f5be7f202efde509bece0eacb9a74adacbb9f13#path:libs/core(@types/node@22.19.19)
       '@cards-ts/state-machine': 0.8.2(@types/node@22.19.19)
