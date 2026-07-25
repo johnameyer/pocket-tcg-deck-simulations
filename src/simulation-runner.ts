@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { gameFactory, CardRepository } from '@cards-ts/pocket-tcg';
 import { ControllerState, HandlerChain } from '@cards-ts/core';
 import { GameParams } from '@cards-ts/pocket-tcg/dist/game-params.js';
@@ -5,7 +7,7 @@ import { Controllers } from '@cards-ts/pocket-tcg/dist/controllers/controllers.j
 import { DefaultBotHandler } from '@cards-ts/pocket-tcg/dist/handlers/default-bot-handler.js';
 import { DeckConfiguration, GameOutcome, GameResult, SimulationResult, SimulationStats } from './simulation-types.js';
 import { MessageCaptureHandler } from './message-capture-handler.js';
-import * as fs from 'fs';
+import { SimulationTraceEvent } from './trace-types.js';
 
 export type HandlerStrategy = 'default' | 'ismcts';
 export type ISMCTSOptions = {
@@ -13,13 +15,23 @@ export type ISMCTSOptions = {
     maxDepth?: number;
 };
 
+export type SimulationRunnerOptions = {
+    traceEnabled?: boolean;
+    traceDir?: string;
+};
+
 export class SimulationRunner {
     private cardRepository: CardRepository;
     private messageLog: string[] = [];
     private messageCaptureHandlers: MessageCaptureHandler[] = [];
+    private currentTraceEvents: SimulationTraceEvent[] = [];
+    private traceEnabled: boolean;
+    private traceDir: string;
 
-    constructor(cardRepository?: CardRepository) {
+    constructor(cardRepository?: CardRepository, options: SimulationRunnerOptions = {}) {
         this.cardRepository = cardRepository || new CardRepository();
+        this.traceEnabled = options.traceEnabled ?? false;
+        this.traceDir = options.traceDir ?? 'logs/traces';
     }
 
     /**
@@ -51,7 +63,7 @@ export class SimulationRunner {
                 }
                 
                 // Create a single message capture handler shared by both players
-                const captureHandler = new MessageCaptureHandler(this.messageLog);
+                const captureHandler = new MessageCaptureHandler(this.messageLog, event => this.currentTraceEvents.push(event));
                 this.messageCaptureHandlers.push(captureHandler);
                 
                 // Create fresh handlers for each player with shared message capture handler prepended
@@ -72,7 +84,7 @@ export class SimulationRunner {
         const factory = gameFactory(this.cardRepository);
         
         // Create a single message capture handler shared by both players
-        const captureHandler = new MessageCaptureHandler(this.messageLog);
+        const captureHandler = new MessageCaptureHandler(this.messageLog, event => this.currentTraceEvents.push(event));
         this.messageCaptureHandlers.push(captureHandler);
         
         return Array.from({ length: 2 }, () => {
@@ -88,8 +100,10 @@ export class SimulationRunner {
      */
     private runSingleGame(deck0: DeckConfiguration, deck1: DeckConfiguration, handlers: any, gameNumber: number): GameResult {
         // Reset message log and handlers for this game (don't create a new array!)
-        this.messageLog.length = 0;  // Clear array in-place
+        this.messageLog.length = 0; // Clear array in-place
+        this.currentTraceEvents = [];
         this.messageCaptureHandlers.forEach(h => h.resetForNewGame());
+        this.messageCaptureHandlers.forEach(h => h.beginGame(gameNumber));
         
         // Randomly assign decks to player positions
         const deck0Position = Math.random() < 0.5 ? (0 as const) : (1 as const);
@@ -140,6 +154,9 @@ export class SimulationRunner {
         
         // Save game log to file
         this.saveGameLog(gameNumber, result, stepCount, names);
+        if (this.traceEnabled) {
+            this.saveTraceLog(gameNumber, result, stepCount, names, this.currentTraceEvents);
+        }
         
         return result;
     }
@@ -149,7 +166,7 @@ export class SimulationRunner {
      */
     private saveGameLog(gameNumber: number, result: GameResult, stepCount: number, playerNames: string[]): void {
         const timestamp = new Date().toISOString();
-        const gameDir = 'game_logs';
+        const gameDir = 'logs/games';
         
         if (!fs.existsSync(gameDir)) {
             fs.mkdirSync(gameDir, { recursive: true });
@@ -175,6 +192,21 @@ export class SimulationRunner {
         
         fs.writeFileSync(fileName, logContent);
     }
+
+    private saveTraceLog(gameNumber: number, result: GameResult, stepCount: number, playerNames: string[], traceEvents: SimulationTraceEvent[]): void {
+        const timestamp = new Date().toISOString();
+        const traceDir = path.resolve(process.cwd(), this.traceDir);
+
+        if (!fs.existsSync(traceDir)) {
+            fs.mkdirSync(traceDir, { recursive: true });
+        }
+
+        const fileName = `${traceDir}/game_${gameNumber}_${timestamp.replace(/[:.]/g, '-')}.trace.jsonl`;
+        const header = JSON.stringify({ gameNumber, timestamp, duration: stepCount, playerNames, result });
+        const body = traceEvents.map(event => JSON.stringify(event)).join('\n');
+        fs.writeFileSync(fileName, [ header, body ].filter(Boolean).join('\n'));
+    }
+
     private determineWinner(state: ControllerState<Controllers>, deck0PlayerPosition: 0 | 1, deck1PlayerPosition: 0 | 1, stepCount: number): GameResult {
         const debug = process.env.DEBUG_SIMULATION === 'true';
         

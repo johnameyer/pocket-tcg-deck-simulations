@@ -4,7 +4,7 @@ import path from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { CardRepository, AttachableEnergyType } from '@cards-ts/pocket-tcg';
-import { SimulationRunner, HandlerStrategy, ISMCTSOptions } from './simulation-runner.js';
+import { SimulationRunner, HandlerStrategy, ISMCTSOptions, SimulationRunnerOptions } from './simulation-runner.js';
 import { DeckConfiguration } from './simulation-types.js';
 
 type SimulationConfig = {
@@ -14,6 +14,10 @@ type SimulationConfig = {
 };
 
 type DeckBuild = Record<string, number>;
+type GameDataModule = {
+    CARDS?: CardRepository;
+    DECKS?: Record<string, { energyTypes: AttachableEnergyType[]; cards: DeckBuild }>;
+};
 
 function validateDeck(deck: DeckConfiguration): void {
     if (!deck.cardIds || deck.cardIds.length === 0) {
@@ -50,37 +54,37 @@ async function loadConfigFromModule(
 ): Promise<{ config: SimulationConfig; repository: CardRepository }> {
     const absolutePath = modulePath.startsWith('/') ? modulePath : path.resolve(process.cwd(), modulePath);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const module = await import(absolutePath) as any;
-
-    const typedConfig = module as Record<string, unknown>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const repository: CardRepository = (typedConfig.CARDS as any) || new CardRepository();
+    const module = await import(absolutePath) as unknown as GameDataModule;
+    const repository: CardRepository = module.CARDS || new CardRepository();
 
     if (process.env.DEBUG_REPOSITORY === 'true') {
-        console.log(`[REPO] Using repository: ${typedConfig.CARDS ? 'from module.CARDS' : 'new empty CardRepository'}`);
+        console.log(`[REPO] Using repository: ${module.CARDS ? 'from module.CARDS' : 'new empty CardRepository'}`);
         try {
             const testCard = repository.getCard('a1-087-froakie');
             console.log(`[REPO] Test card a1-087-froakie: ${testCard.data.name}`);
-        } catch (e) {
+        } catch {
             console.log('[REPO] Test card a1-087-froakie: NOT FOUND');
         }
     }
 
     // Expect DECKS structure from game-data
-    if (!typedConfig.DECKS || typeof typedConfig.DECKS !== 'object') {
+    if (!module.DECKS) {
         throw new Error('Module must export DECKS object from game-data');
     }
 
-    const allDecks: Record<string, { energyTypes: string[]; cards: DeckBuild }> = typedConfig.DECKS as any;
+    // Flatten tiered DECKS ({ S: {deck...}, 'A+': {deck...} }) or accept flat map
+    type DeckEntry = { energyTypes: AttachableEnergyType[]; cards: DeckBuild };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawDecks = module.DECKS as any;
+    const firstValue = Object.values(rawDecks)[0];
+    const isTiered = firstValue && typeof firstValue === 'object' && !('cards' in (firstValue as object));
+    const allDecks: Record<string, DeckEntry> = isTiered
+        ? Object.values(rawDecks as Record<string, Record<string, DeckEntry>>).reduce((acc: Record<string, DeckEntry>, tier) => Object.assign(acc, tier), {})
+        : rawDecks as Record<string, DeckEntry>;
     const deckKeys = Object.keys(allDecks);
 
-    if (deckKeys.length < 2) {
-        throw new Error(`DECKS must contain at least 2 decks, found ${deckKeys.length}`);
-    }
-
     const selectedDeck1Id = deck1Id || deckKeys[0];
-    const selectedDeck2Id = deck2Id || deckKeys[1];
+    const selectedDeck2Id = deck2Id || deckKeys[1] || deckKeys[0];
 
     if (!allDecks[selectedDeck1Id]) {
         const availableDecks = deckKeys.sort();
@@ -226,6 +230,16 @@ void yargs(hideBin(process.argv))
             .option('ismcts-max-depth', {
                 description: 'ISMCTS max depth (default: 15)',
                 type: 'number',
+            })
+            .option('trace', {
+                description: 'Write structured trace logs for each game',
+                type: 'boolean',
+                default: false,
+            })
+            .option('trace-dir', {
+                description: 'Directory for structured trace logs',
+                type: 'string',
+                default: 'logs/traces',
             }),
         async (argv) => {
             const result = await loadConfigFromModule(
@@ -239,7 +253,10 @@ void yargs(hideBin(process.argv))
 
             validateConfig(config);
 
-            const gameRunner = new SimulationRunner(repo);
+            const gameRunner = new SimulationRunner(repo, {
+                traceEnabled: argv.trace as boolean,
+                traceDir: argv['trace-dir'] as string,
+            });
             const strategy = argv.handler as HandlerStrategy;
             
             const ismctsOptions: ISMCTSOptions = {};
