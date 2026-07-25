@@ -226,6 +226,16 @@ void yargs(hideBin(process.argv))
             .option('ismcts-max-depth', {
                 description: 'ISMCTS max depth (default: 15)',
                 type: 'number',
+            })
+            .option('trace', {
+                description: 'Write structured trace logs for each game',
+                type: 'boolean',
+                default: false,
+            })
+            .option('trace-dir', {
+                description: 'Directory for structured trace logs',
+                type: 'string',
+                default: 'logs/traces',
             }),
         async (argv) => {
             const result = await loadConfigFromModule(
@@ -239,7 +249,10 @@ void yargs(hideBin(process.argv))
 
             validateConfig(config);
 
-            const gameRunner = new SimulationRunner(repo);
+            const gameRunner = new SimulationRunner(repo, {
+                traceEnabled: argv.trace as boolean,
+                traceDir: argv['trace-dir'] as string,
+            });
             const strategy = argv.handler as HandlerStrategy;
             
             const ismctsOptions: ISMCTSOptions = {};
